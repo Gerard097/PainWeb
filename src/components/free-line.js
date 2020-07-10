@@ -1,30 +1,46 @@
 import Konva from "konva"
 
-export const addLine = (stage, layer, mode = "brush") => {
+export const addLine = (canvas, stage, layer) => {
     let isPaint = false;
     let lastLine;
     stage.on("mousedown touchstart", function(e) {
+
+        if (!canvas.isPencilMode() && !canvas.isEraseMode()) {
+            return;
+        } 
         
+        const mode = canvas.paintMode();
+
         isPaint = true;
+
         let pos = stage.getPointerPosition();
+
         lastLine = new Konva.Line({
-                stroke: mode === "brush" ? "red" : "white",
+                stroke: mode === "brush" ? "red" : "#f5f5f5",
                 strokeWidth: mode === "brush" ? 5 : 20,
                 globalCompositeOperation:
                 mode === "brush" ? "source-over" : "destination-out",
                 points: [pos.x, pos.y],
                 draggable: mode === "brush",
-                listening: false,
-                dragBoundFunc: (p) => { return p; },
-                mousedown: () => { console.log("sadasds"); },
-                onclick: (e) => { console.log(e); }
-            });
+                dragBoundFunc: (p) => { console.log("dragged"); return p; },
+                
+        });
+        
+        const line = lastLine;
+
+        if (mode === "brush")
+            lastLine.on('touchstart mousedown', () => { canvas.itemSelected(line); });
+        
         layer.add(lastLine);
-        console.log(lastLine.attrs);
     });
 
     stage.on("mouseup touchend mouseleave", function() {
         isPaint = false;
+        const mode = canvas.paintMode();
+        if (lastLine && mode === "brush") {
+            canvas.addItem(lastLine);
+        }
+        lastLine = null;
     });
 
     stage.on("mousemove touchmove", function() {
