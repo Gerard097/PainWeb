@@ -53,42 +53,57 @@ class TransformAction {
     }
 }
 
-class EraseItemAction {
+// class EraseItemAction {
 
-    constructor(canvas, item) {
-        this.canvas = canvas;
-        this.item = item;
-    }
+//     constructor(canvas, item) {
+//         this.canvas = canvas;
+//         this.item = item;
+//     }
 
-    excecute() {
+//     excecute() {
 
-    }
+//     }
 
-    undo() {
+//     undo() {
 
-    }
+//     }
 
-    redo() {
+//     redo() {
 
-    }
+//     }
     
+// }
+const equalObjects = (a, b) => {
+
+    let x;
+    for (x in a) {
+        if (a[x] !== b[x]) return false;
+    }
+
+    for (x in b) {
+        if (a[x] !== b[x]) return false;
+    }
+
+    return true;
 }
 
 class Canvas extends Component 
 {
     constructor(props) {
         super(props);
-        this.userStrokeStyle = '#EE92C2';
+
+        this.userFillColor = '#000000';
+        this.userOutlineColor = '#FFFFFF';
 
         this.state = {
             currentMode: 1,
             isShapeSelected: true,
-            mainColor: "#EE92C2",
-            secondaryColor: "#AFFFFF",
             dummyObject: null,
             shapes: [],
             canvasWidth: 0,
-            canvasHeight: 0
+            canvasHeight: 0,
+            fillColor: this.userFillColor,
+            outlineColor: this.userOutlineColor
         }
 
         this.windowResized = this.onWindowResized.bind(this);
@@ -117,7 +132,7 @@ class Canvas extends Component
         this.redo = [];
 
         //Used to store previous  
-        this.oldAttrs = null;
+        this.oldAttrs = {};
 
         this.dummyRef = React.createRef();
     }
@@ -226,7 +241,6 @@ class Canvas extends Component
         this.lastSelected = item;
 
         this.setState({isShapeSelected: true}, () => {
-            console.log("Selected");
             this.trRef.nodes([this.lastSelected]);
             this.layer.batchDraw();
         });
@@ -432,7 +446,7 @@ class Canvas extends Component
             <IconContext.Provider  value={{ className: "tool-button", size: '2em', style:{}} }>
                 {toolsComponents}
             </IconContext.Provider >
-                <button
+                {/* <button
                     disabled={this.undo.length === 0}
                     onClick={()=>{
                         this.doUndo();
@@ -443,7 +457,7 @@ class Canvas extends Component
                     onClick={()=>{
                         this.doRedo();
                     }}
-                    >Redo</button>
+                    >Redo</button> */}
             </div>
             <div ref={(r) => (this.canvasWrap = r)} className='canvas-wrapper'>
                 <Stage
@@ -466,8 +480,15 @@ class Canvas extends Component
                         {shapes}
                         {this.state.isShapeSelected && 
                         <Transformer
-                            onTransformStart={(ev) => { ;this.addAction(new TransformAction(ev.target)); }}
-                            onTransformEnd={(ev) => { console.log(ev.target.attrs); }}
+                            onTransformStart={(ev) => { Object.assign(this.oldAttrs, ev.target.attrs); }}
+                            onTransformEnd={(ev) => {
+                                console.log(ev);
+                                if (!equalObjects(this.oldAttrs, ev.target.attrs)) {
+                                    this.addAction(new TransformAction(ev.target, this.oldAttrs)); 
+                                }
+
+                                this.oldAttrs = {};
+                            }}
                             onMouseDown={()=>{ this.cleanSelection = false; /*To avoid unselecting when clicking out of the shape*/ }}
                             ref={(ref)=>{ this.trRef = ref; }}/>}
                         {this.state.dummyObject}
