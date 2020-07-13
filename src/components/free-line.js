@@ -4,7 +4,7 @@ export const addLine = (canvas, stage, layer) => {
     let isPaint = false;
     let lastLine;
     stage.on("mousedown touchstart", function(e) {
-
+        console.log("Yes");
         if (!canvas.isPencilMode() && !canvas.isEraseMode()) {
             return;
         } 

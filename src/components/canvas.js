@@ -19,10 +19,10 @@ import '../styles/canvas.css'
 
 class TransformAction {
 
-    constructor(target) {
+    constructor(target, oldAttrs) {
         this.target = target;
         this.old = {};
-        Object.assign(this.old, target.attrs);
+        Object.assign(this.old, oldAttrs);
     }
 
     excecute() {}
@@ -86,15 +86,17 @@ class Canvas extends Component
             mainColor: "#EE92C2",
             secondaryColor: "#AFFFFF",
             dummyObject: null,
-            shapes: []
+            shapes: [],
+            canvasWidth: 0,
+            canvasHeight: 0
         }
 
         this.windowResized = this.onWindowResized.bind(this);
         this.canvas = this;
 
         //Will not work if the monitor size is bigger but window is not on full screen size
-        this.cvWidth = Math.max(1920, window.outerWidth);
-        this.cvHeight = Math.max(1080, window.outerHeight);
+        // this.cvWidth = Math.max(1920, window.outerWidth);
+        // this.cvHeight = Math.max(1080, window.outerHeight);
 
         this.tools = [
             {Type: GrSelect, mode: "Select", onEnter: () => {this.onSelectTool(true)}, onExit: () => {this.onSelectTool(false)}},
@@ -113,6 +115,9 @@ class Canvas extends Component
 
         this.undo = [];
         this.redo = [];
+
+        //Used to store previous  
+        this.oldAttrs = null;
 
         this.dummyRef = React.createRef();
     }
@@ -146,8 +151,8 @@ class Canvas extends Component
 
     componentDidMount() {
         window.addEventListener('resize', this.windowResized);
+        this.setState({canvasWidth: this.canvasWrap.clientWidth, canvasHeight: this.canvasWrap.clientHeight})
         addLine(this, this.stage, this.layer);
-        console.log(this.trRef);
         this.setState({isShapeSelected: false});
     }
 
@@ -156,8 +161,8 @@ class Canvas extends Component
     }    
 
     onWindowResized() {
-        // this.setState({ cvWidth: this.canvasWrap.clientWidth, 
-        //                 cvHeight: this.canvasWrap.clientHeight });
+        this.setState({canvasWidth: this.canvasWrap.clientWidth, 
+                       canvasHeight: this.canvasWrap.clientHeight})
     }
 
     addItem(item) {
@@ -179,7 +184,7 @@ class Canvas extends Component
 
         //Check for deletion
         if (this.isDeleteMode()) {
-
+            console.log("Removing: ", item);
             return;
         }
 
@@ -376,9 +381,10 @@ class Canvas extends Component
             </div>
             <div ref={(r) => (this.canvasWrap = r)} className='canvas-wrapper'>
                 <Stage
-                    //style={{position:'static'}}
-                    width={this.cvWidth}
-                    height={this.cvHeight}
+                    className="canvas-container"
+                    // style={{backgroundColor:red}}
+                    width={this.state.canvasWidth}
+                    height={this.state.canvasHeight}
                     ref={(ref) => (this.stage = ref)}
                     //onClick={()=>{console.log("Clicked")}}
                     onMouseDown={(e)=>{this.onMouseDown();}}
@@ -391,8 +397,8 @@ class Canvas extends Component
                         {shapes}
                         {this.state.isShapeSelected && 
                         <Transformer
-                            onTransformStart={(ev) => { this.addAction(new TransformAction(ev.target)); }}
-                            // onTransformEnd={(ev) => { console.log(ev.target.attrs); }}
+                            onTransformStart={(ev) => { ;this.addAction(new TransformAction(ev.target)); }}
+                            onTransformEnd={(ev) => { console.log(ev.target.attrs); }}
                             onMouseDown={()=>{ this.cleanSelection = false; /*To avoid unselecting when clicking out of the shape*/ }}
                             ref={(ref)=>{ this.trRef = ref; }}/>}
                         {this.state.dummyObject}
