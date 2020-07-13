@@ -4,7 +4,7 @@ export const addLine = (canvas, stage, layer) => {
     let isPaint = false;
     let lastLine;
     stage.on("mousedown touchstart", function(e) {
-        console.log("Yes");
+        
         if (!canvas.isPencilMode() && !canvas.isEraseMode()) {
             return;
         } 
@@ -16,6 +16,7 @@ export const addLine = (canvas, stage, layer) => {
         let pos = stage.getPointerPosition();
 
         lastLine = new Konva.Line({
+                typeID: "FreeLine",
                 stroke: mode === "brush" ? "red" : "#f5f5f5",
                 strokeWidth: mode === "brush" ? 5 : 20,
                 globalCompositeOperation:
@@ -36,10 +37,10 @@ export const addLine = (canvas, stage, layer) => {
 
     stage.on("mouseup touchend mouseleave", function() {
         isPaint = false;
-        const mode = canvas.paintMode();
-        if (lastLine && mode === "brush") {
-            canvas.addItem(lastLine);
-        }
+        // const mode = canvas.paintMode();
+        // if (lastLine && mode === "brush") {
+        //     canvas.addItem(lastLine);
+        // }
         lastLine = null;
     });
 

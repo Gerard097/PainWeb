@@ -4,7 +4,8 @@ import { Rect } from "react-konva";
 const Rectangle = React.forwardRef((props, ref) => (
     <Rect
         fill="#4433FF"
-        onMouseDown={()=>{ if(props.canvas) props.canvas.itemSelected(ref.current);}}
+        onMouseDown={()=>{ if(props.onMouseDown) props.onMouseDown(); }}
+        onTouchStart={()=>{ if(props.onMouseDown) props.onMouseDown(); }}
         ref={ref}
         {...props}
         draggable

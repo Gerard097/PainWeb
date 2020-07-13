@@ -81,7 +81,7 @@ class Canvas extends Component
         this.userStrokeStyle = '#EE92C2';
 
         this.state = {
-            currentMode: 0,
+            currentMode: 1,
             isShapeSelected: true,
             mainColor: "#EE92C2",
             secondaryColor: "#AFFFFF",
@@ -104,10 +104,10 @@ class Canvas extends Component
             {Type: BsCircle, mode: "Circle", shape: Circle},
             {Type: BsSquare, mode: "Rectangle", shape: Rectangle},
             {Type: RiEraserLine, mode: "Erase"},
-            {Type: RiDeleteBin6Line, mode: "Delete"}
+            {Type: RiDeleteBin6Line, mode: "Delete", onEnter: () => {this.onSelectTool(true)}, onExit: () => {this.onSelectTool(false)}}
         ];
 
-        this.items = [];
+        //this.items = [];
         this.isConstructing = false;
 
         this.cleanSelection = true;
@@ -153,7 +153,8 @@ class Canvas extends Component
         window.addEventListener('resize', this.windowResized);
         this.setState({canvasWidth: this.canvasWrap.clientWidth, canvasHeight: this.canvasWrap.clientHeight})
         addLine(this, this.stage, this.layer);
-        this.setState({isShapeSelected: false});
+        //this.setState({isShapeSelected: false});
+        this.onSelectTool(false);
     }
 
     componentWillUnmount() {
@@ -165,31 +166,56 @@ class Canvas extends Component
                        canvasHeight: this.canvasWrap.clientHeight})
     }
 
-    addItem(item) {
-        console.log("Item added", item);
-        this.items.push(item);
-        //item.listening(false);
-        //this.layer.batchDraw();
-    }
+    // addItem(item) {
+    //     console.log("Item added", item);
+    //     this.items.push(item);
+    // }
 
     removeItem(item) {
-        console.log("Item removed");
-        this.items.splice(this.items.indexOf(item), 1);
-        //this.layer.
+        
+        // const itemAt = this.items.indexOf(item);
+        
+        // console.log(this.items);
+        // //Should never be false
+        // if (itemAt !== -1) {
+        //     this.items.splice(itemAt, 1);
+        // }
+        // else {
+        //     console.error("Something wrong happened. Trying to remove an already deleted item", item);
+        // }
+
+        const shapes = this.state.shapes;
+        
+        let removeAt = -1;
+        
+        shapes.forEach((it, index) => {
+            if (it.ref._id === item._id) {
+                removeAt = index;
+            }
+        });
+
+        if (removeAt !== -1) {
+            shapes.splice(removeAt, 1);
+        }
+        else {
+            item.destroy();
+        }
+
+        this.setState({shapes: shapes});
+        this.layer.batchDraw();
     }
 
     itemSelected (item) {
 
-        console.log("Touched", item);
+        //console.log("Touched", item);
 
         //Check for deletion
         if (this.isDeleteMode()) {
-            console.log("Removing: ", item);
+            this.removeItem(item);
             return;
         }
 
         if (!this.isSelectMode()) {
-            console.log("nannu");
             return;
         }
 
@@ -210,7 +236,9 @@ class Canvas extends Component
 
         if (!this.isSelectMode()) {
             
-            if (!this.isEraseMode() && !this.isPencilMode() && !this.isDeleteMode()) {
+            const shapeModes = ["Circle", "Rectangle"];
+
+            if (shapeModes.indexOf(this.getCurrentMode()) !== -1) {
                 const pos = this.stage.getPointerPosition();
                 //Construct shape
                 this.isConstructing = true;
@@ -242,13 +270,38 @@ class Canvas extends Component
             
             const obj = this.dummyRef.current;
             const shapeType = this.getCurrentMode();
+
+            const e = window.event;
+
+            let dx = pos.x-obj.x();
+            let dy = pos.y-obj.y();
+
             if (shapeType === "Circle") {
-                obj.width(Math.abs(pos.x-obj.x())*2);
-                obj.height(Math.abs(pos.y-obj.y())*2);
+
+                if (e.shiftKey) {
+                    const side = Math.min(Math.abs(dx), Math.abs(dy));
+                    dx = Math.sign(dx)*side;
+                    dy = Math.sign(dy)*side;
+                }
+            
+                let offX = -dx*0.5;
+                let offY = -dy*0.5;
+
+                obj.offsetX(offX);
+                obj.offsetY(offY);
+                obj.width(Math.abs(dx));
+                obj.height(Math.abs(dy));
             }
             else if (shapeType === "Rectangle") {
-                obj.width(pos.x-obj.x());
-                obj.height(pos.y-obj.y());
+
+                if (e.shiftKey) {
+                    const side = Math.min(Math.abs(dx), Math.abs(dy));
+                    dx = Math.sign(dx)*side;
+                    dy = Math.sign(dy)*side;
+                }
+
+                obj.width(dx);
+                obj.height(dy);
             }
 
             this.layer.batchDraw();
@@ -261,26 +314,32 @@ class Canvas extends Component
             
             //Save the state
             const attrs = this.dummyRef.current.attrs;
+            
+            attrs.typeID = this.getCurrentMode();
             //Store the ref
-            this.addItem(this.dummyRef.current);
+            //this.addItem(this.dummyRef.current);
 
             const shapes = this.state.shapes;
 
-            const shape = {ref: this.dummyRef, obj: this.state.dummyObject};
+            // const shape = {ref: this.dummyRef, obj: this.state.dummyObject};
+            const Type = this.tools[this.state.currentMode].shape;
+
+            const shape = {attrs: attrs, Type: Type, ref: createRef(), key: this.dummyRef.current._id};
             
             shapes.push(shape);
 
-            this.setState({shapes: shapes, dummyObject: null}, 
+            this.dummyRef = createRef();
+
+            this.setState({shapes: shapes, dummyObject: null});/*, 
                            () => { 
                                //For some reason the attrs are getting restored to the original (when created)
                                //so we need to apply again the changes
-                               shape.ref.current.attrs = attrs; this.dummyRef = createRef();  });
+                               shape.ref.current.attrs = attrs; this.dummyRef = createRef();  });*/
         }
     }
 
     onSelectTool(enabled) {
         
-        console.log("Tool selected");
         this.layer.listening(enabled);
 
         this.layer.batchDraw();
@@ -356,8 +415,15 @@ class Canvas extends Component
                     </div>);
         });
 
-        const shapes = this.state.shapes.map((shape) => {
-            return shape.obj;
+        const shapes = this.state.shapes.map((shape,index) => {
+            let {Type, attrs, key } = shape;
+            
+            return <Type
+                        key={key}
+                        ref={(r)=>{ if (r) { shape.ref = r; if (attrs) { r.attrs = attrs; } } }}
+                        onMouseDown={() => { this.itemSelected(shape.ref); }}
+                        canvas={this} 
+                        stroke="#AFFFFF"/>;
         });
 
         return (
@@ -387,6 +453,9 @@ class Canvas extends Component
                     height={this.state.canvasHeight}
                     ref={(ref) => (this.stage = ref)}
                     //onClick={()=>{console.log("Clicked")}}
+                    onTouchStart={(e)=>{this.onMouseDown();}}
+                    onTouchMove={(e)=>{this.onMouseMove();}}
+                    onTouchEnd={()=>{this.onMouseUp();}}
                     onMouseDown={(e)=>{this.onMouseDown();}}
                     onMouseLeave={()=>{this.onMouseUp();}}
                     onMouseUp={()=>{this.onMouseUp();}}

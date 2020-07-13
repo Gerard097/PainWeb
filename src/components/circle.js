@@ -6,7 +6,8 @@ const Circle = React.forwardRef((props, ref) => (
   <Ellipse
     ref={ref}
     fill="#4433FF"
-    onMouseDown={()=>{ if(props.canvas) props.canvas.itemSelected(ref.current);}}
+    onMouseDown={()=>{ if(props.onMouseDown) props.onMouseDown(); }}
+    onTouchStart={()=>{ if(props.onMouseDown) props.onMouseDown(); }}
     {...props}
     draggable/>
 ));
