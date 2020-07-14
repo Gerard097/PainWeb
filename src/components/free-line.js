@@ -14,17 +14,15 @@ export const addLine = (canvas, stage, layer) => {
         isPaint = true;
 
         let pos = stage.getPointerPosition();
-
+        
         lastLine = new Konva.Line({
                 typeID: "FreeLine",
-                stroke: mode === "brush" ? "red" : "#f5f5f5",
+                stroke: mode === "brush" ? canvas.state.fillColor : "#f5f5f5",
                 strokeWidth: mode === "brush" ? 5 : 20,
                 globalCompositeOperation:
                 mode === "brush" ? "source-over" : "destination-out",
                 points: [pos.x, pos.y],
-                draggable: mode === "brush",
-                dragBoundFunc: (p) => { console.log("dragged"); return p; },
-                
+                draggable: mode === "brush"                
         });
         
         const line = lastLine;

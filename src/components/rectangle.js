@@ -3,7 +3,7 @@ import { Rect } from "react-konva";
 
 const Rectangle = React.forwardRef((props, ref) => (
     <Rect
-        fill="#4433FF"
+        strokeWidth={4}
         onMouseDown={()=>{ if(props.onMouseDown) props.onMouseDown(); }}
         onTouchStart={()=>{ if(props.onMouseDown) props.onMouseDown(); }}
         ref={ref}

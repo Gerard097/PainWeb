@@ -15,6 +15,8 @@ import { RiEraserLine, RiDeleteBin6Line } from 'react-icons/ri'
 
 import { IconContext } from 'react-icons'
 
+import { SketchPicker } from 'react-color'
+
 import '../styles/canvas.css'
 
 class TransformAction {
@@ -92,7 +94,7 @@ class Canvas extends Component
     constructor(props) {
         super(props);
 
-        this.userFillColor = '#000000';
+        this.userFillColor = '#000000FF';
         this.userOutlineColor = '#FFFFFF';
 
         this.state = {
@@ -103,7 +105,9 @@ class Canvas extends Component
             canvasWidth: 0,
             canvasHeight: 0,
             fillColor: this.userFillColor,
-            outlineColor: this.userOutlineColor
+            outlineColor: this.userOutlineColor,
+            popupFill: false,
+            popupOutline: false
         }
 
         this.windowResized = this.onWindowResized.bind(this);
@@ -222,8 +226,6 @@ class Canvas extends Component
 
     itemSelected (item) {
 
-        //console.log("Touched", item);
-
         //Check for deletion
         if (this.isDeleteMode()) {
             this.removeItem(item);
@@ -247,7 +249,7 @@ class Canvas extends Component
     }
 
     onMouseDown() {
-
+        
         if (!this.isSelectMode()) {
             
             const shapeModes = ["Circle", "Rectangle"];
@@ -262,7 +264,9 @@ class Canvas extends Component
                 const dummy = <Type
                                 ref={this.dummyRef} 
                                 canvas={this} 
-                                x={pos.x} y={pos.y} stroke="#AFFFFF"/>;
+                                x={pos.x} y={pos.y} 
+                                fill={this.state.fillColor}
+                                stroke={this.state.outlineColor}/>;
                 
                 this.setState({dummyObject:dummy});
             }
@@ -429,35 +433,72 @@ class Canvas extends Component
                     </div>);
         });
 
+        //TODO: This is possible wrong since i'm directly modifiying the shape
+        //and not using setState
         const shapes = this.state.shapes.map((shape,index) => {
-            let {Type, attrs, key } = shape;
+            let { Type, attrs, key } = shape;
             
             return <Type
                         key={key}
                         ref={(r)=>{ if (r) { shape.ref = r; if (attrs) { r.attrs = attrs; } } }}
                         onMouseDown={() => { this.itemSelected(shape.ref); }}
-                        canvas={this} 
-                        stroke="#AFFFFF"/>;
+                        canvas={this}
+                        fill={shape.attrs.fillColor}
+                        stroke={shape.attrs.outlineColor}/>;
         });
 
         return (
             <>
             <div className='toolbar-header'>
-            <IconContext.Provider  value={{ className: "tool-button", size: '2em', style:{}} }>
-                {toolsComponents}
-            </IconContext.Provider >
-                {/* <button
-                    disabled={this.undo.length === 0}
-                    onClick={()=>{
-                        this.doUndo();
-                    }}
-                    >Undo</button>
-                    <button
-                    disabled={this.redo.length === 0}
-                    onClick={()=>{
-                        this.doRedo();
-                    }}
-                    >Redo</button> */}
+                <div className='toolbar-overflow'>
+                    <IconContext.Provider  value={{ className: "tool-button", size: '2em', style:{}} }>
+                        {toolsComponents}
+                    </IconContext.Provider >
+                    <div className='colors-wrapper'>
+                        <div>
+                            <div className='color-picker'>
+                                <div className='hover-wrap' onClick={()=>{this.setState({popupFill:true})}}>
+                                    <div className='color-display' style={{width:'30px', height: '30px', backgroundColor: this.state.fillColor}}></div>
+                                </div>
+                                <p className='picker-text'>Relleno</p>
+                            </div>
+                            {this.state.popupFill ?
+                            <div> 
+                            <div className='color-popup'>
+                                <div className='popup-cover' onClick={()=>{this.setState({popupFill:false})}}></div>
+                                <SketchPicker color={this.state.fillColor} onChange={(c)=>{this.setState({fillColor:c.hex})}}/>
+                            </div>
+                             </div> : null}
+                        </div>
+                        <div>
+                            <div className='color-picker'>
+                                <div className='hover-wrap' onClick={()=>{this.setState({popupOutline:true})}}>
+                                    <div className='color-display' style={{width:'30px', height: '30px', backgroundColor: this.state.outlineColor}}></div>
+                                </div>
+                                <p className='picker-text'>Contorno</p>
+                            </div>
+                            {this.state.popupOutline ? 
+                            <div className='color-popup'>
+                                <div className='popup-cover' onClick={()=>{this.setState({popupOutline:false})}}></div>
+                                <SketchPicker color={this.state.outlineColor} onChange={(c)=>{this.setState({outlineColor:c.hex})}}/>
+                            </div> : null}
+                        </div>
+                        
+                    </div>
+                    
+                        {/* <button
+                            disabled={this.undo.length === 0}
+                            onClick={()=>{
+                                this.doUndo();
+                            }}
+                            >Undo</button>
+                            <button
+                            disabled={this.redo.length === 0}
+                            onClick={()=>{
+                                this.doRedo();
+                            }}
+                            >Redo</button> */}
+                </div>
             </div>
             <div ref={(r) => (this.canvasWrap = r)} className='canvas-wrapper'>
                 <Stage
@@ -480,15 +521,17 @@ class Canvas extends Component
                         {shapes}
                         {this.state.isShapeSelected && 
                         <Transformer
+                            anchorSize={15}
                             onTransformStart={(ev) => { Object.assign(this.oldAttrs, ev.target.attrs); }}
                             onTransformEnd={(ev) => {
-                                console.log(ev);
                                 if (!equalObjects(this.oldAttrs, ev.target.attrs)) {
+                                    //Should use shape ID instead of reference, since it can be deleted before undoing
                                     this.addAction(new TransformAction(ev.target, this.oldAttrs)); 
                                 }
 
                                 this.oldAttrs = {};
                             }}
+                            onTouchStart={()=>{ this.cleanSelection = false; }}
                             onMouseDown={()=>{ this.cleanSelection = false; /*To avoid unselecting when clicking out of the shape*/ }}
                             ref={(ref)=>{ this.trRef = ref; }}/>}
                         {this.state.dummyObject}
